@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Steam Manifest Downloader</string>
+    <string name="app_subtitle">Download Steam depots directly to your device</string>
+</resources>
