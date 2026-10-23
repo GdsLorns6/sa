@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_HOME: /usr/local/lib/android/sdk
 
     steps:
       - name: Checkout code
@@ -23,23 +24,29 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android command line tools
         shell: bash
         run: |
-          mkdir -p "$ANDROID_SDK_ROOT"
-          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --install "cmdline-tools;latest"
+          sudo mkdir -p "$ANDROID_SDK_ROOT"
+          sudo chown -R "$USER":"$USER" "$ANDROID_SDK_ROOT"
+
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -o /tmp/cmdline-tools.zip
+
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
 
       - name: Accept Android SDK licenses
         shell: bash
-        run: yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
 
       - name: Install Android SDK packages
         shell: bash
         run: |
-          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --install \
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
