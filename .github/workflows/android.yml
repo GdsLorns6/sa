@@ -10,8 +10,9 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /opt/android-sdk
+      ANDROID_HOME: /opt/android-sdk
+      GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2g -Dfile.encoding=UTF-8"
 
     steps:
       - name: Checkout code
@@ -27,26 +28,20 @@ jobs:
       - name: Install Android command line tools
         shell: bash
         run: |
-          sudo mkdir -p "$ANDROID_SDK_ROOT"
-          sudo chown -R "$USER":"$USER" "$ANDROID_SDK_ROOT"
-
-          curl -fsSL \
-            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
-            -o /tmp/cmdline-tools.zip
-
+          mkdir -p "$ANDROID_SDK_ROOT"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdline-tools.zip
+          rm -rf /tmp/android-sdk
+          mkdir -p /tmp/android-sdk
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/android-sdk
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          rm -rf "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          mv /tmp/android-sdk/cmdline-tools "$ANDROID_SDK_ROOT/cmdline-tools/latest"
 
-      - name: Accept Android SDK licenses
+      - name: Accept licenses and install SDK components
         shell: bash
         run: |
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
-
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install \
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" --install \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0"
@@ -55,8 +50,6 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build Debug APK
-        env:
-          GRADLE_OPTS: "-Xmx2048m -Dfile.encoding=UTF-8"
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
