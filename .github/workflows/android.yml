@@ -29,6 +29,16 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-36" "build-tools;35.0.0" || true
 
+      - name: Ensure gradle.properties
+        shell: bash
+        run: |
+          touch gradle.properties
+          grep -q '^android.useAndroidX' gradle.properties || echo "android.useAndroidX=true" >> gradle.properties
+          grep -q '^android.nonTransitiveRClass' gradle.properties || echo "android.nonTransitiveRClass=true" >> gradle.properties
+          grep -q '^org.gradle.jvmargs' gradle.properties || echo "org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8" >> gradle.properties
+          grep -q '^kotlin.code.style' gradle.properties || echo "kotlin.code.style=official" >> gradle.properties
+          cat gradle.properties
+
       - name: Detect Gradle version
         id: gv
         shell: bash
@@ -51,7 +61,7 @@ jobs:
         shell: bash
         run: |
           echo "===== KEY ERROR LINES ====="
-          grep -n -E "^Execution failed|^A problem occurred|^e: |Dependency '|compileSdk|minCompileSdk|Duplicate class|Could not resolve|Unresolved reference|^> " build.log | cut -c1-260 | head -15
+          grep -n -E "^Execution failed|^A problem occurred|^e: |Dependency '|minCompileSdk|Duplicate class|Could not resolve|Unresolved reference|^> [A-Z]" build.log | grep -v "> Task" | cut -c1-260 | head -20
 
       - name: Save full log
         if: failure()
