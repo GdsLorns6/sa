@@ -46,11 +46,19 @@ jobs:
         run: |
           gradle assembleDebug --console=plain 2>&1 | tee build.log
 
-      - name: Show errors
+      - name: Show key errors
         if: failure()
         shell: bash
         run: |
-          awk '/\* What went wrong:/{f=1} /\* Try:/{f=0} f' build.log | cut -c1-220 | head -40
+          echo "===== KEY ERROR LINES ====="
+          grep -n -E "^Execution failed|^A problem occurred|^e: |Dependency '|compileSdk|minCompileSdk|Duplicate class|Could not resolve|Unresolved reference|^> " build.log | cut -c1-260 | head -15
+
+      - name: Save full log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
