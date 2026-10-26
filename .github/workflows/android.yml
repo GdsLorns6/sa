@@ -22,14 +22,16 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install SDK platform
+      - name: Install SDK platforms
+        shell: bash
         run: |
           set +o pipefail
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "platforms;android-36" "build-tools;35.0.0" || true
 
       - name: Detect Gradle version
         id: gv
+        shell: bash
         run: |
           V=$(grep distributionUrl gradle/wrapper/gradle-wrapper.properties 2>/dev/null | sed -E 's/.*gradle-([0-9.]+)-(bin|all)\.zip.*/\1/')
           echo "version=${V:-8.11.1}" >> "$GITHUB_OUTPUT"
@@ -40,13 +42,15 @@ jobs:
           gradle-version: ${{ steps.gv.outputs.version }}
 
       - name: Build debug APK
+        shell: bash
         run: |
           gradle assembleDebug --console=plain 2>&1 | tee build.log
 
       - name: Show errors
         if: failure()
+        shell: bash
         run: |
-          grep -E -B2 -A12 "^e: |What went wrong|Could not|FAILED" build.log | head -80
+          awk '/\* What went wrong:/{f=1} /\* Try:/{f=0} f' build.log | cut -c1-220 | head -40
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -57,6 +61,7 @@ jobs:
 
       - name: Publish to Releases
         if: github.event_name != 'pull_request'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
